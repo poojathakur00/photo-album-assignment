@@ -4,66 +4,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Photo Album</title>
+    <title>Smart Cloud Album</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338ca;
+            --bg: #F3F4F6;
+            --card-bg: #ffffff;
+            --text: #1F2937;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         h1 {
-            text-align: center;
-            color: #333;
+            margin-bottom: 30px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: -0.5px;
         }
 
-        .container {
-            background: white;
-            padding: 25px;
-            margin-bottom: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        h1 i {
+            color: var(--primary);
+            margin-right: 10px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
         }
 
         h3 {
             margin-top: 0;
-            color: #555;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            color: #4B5563;
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        h3 i {
+            margin-right: 10px;
+            color: var(--primary);
         }
 
         input[type="text"],
         input[type="file"] {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
+            padding: 12px 15px;
+            margin: 10px 0 20px 0;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 14px;
             box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
         button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
             width: 100%;
-            font-size: 16px;
+            background-color: var(--primary);
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
             transition: background 0.3s;
         }
 
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--primary-hover);
+        }
+
+        /* Search Results Area - Full Width */
+        .results-container {
+            grid-column: 1 / -1;
+            margin-top: 20px;
         }
 
         #results {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 20px;
             margin-top: 20px;
         }
 
@@ -71,52 +123,64 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
         }
 
         #results img:hover {
             transform: scale(1.05);
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #9CA3AF;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <script>
-        // *****************************************************
-        // CONFIGURE YOUR API DETAILS HERE
+        // ==========================================
+        //  ⚠️ PASTE YOUR DETAILS HERE ⚠️
+        // ==========================================
         var apigClient = {
             invokeUrl: 'https://ndalvilx92.execute-api.us-east-2.amazonaws.com/dev', // e.g., https://xyz.execute-api.us-east-2.amazonaws.com/dev
-            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'     // e.g., da2-qwertyuiop123456
+            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'     // e.g., da2-qwertyuiop123456                                 // <--- PASTE KEY HERE
         };
-        // *****************************************************
+        // ==========================================
 
         function searchPhotos() {
             var query = document.getElementById('searchQuery').value;
             var resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = "<p>Searching...</p>";
+            resultsDiv.innerHTML = '<p class="empty-state">Searching...</p>';
 
             fetch(apigClient.invokeUrl + '/search?q=' + query, {
                 method: 'GET',
-                headers: {
-                    'x-api-key': apigClient.apiKey
-                }
+                headers: { 'x-api-key': apigClient.apiKey }
             })
                 .then(response => response.json())
                 .then(data => {
                     resultsDiv.innerHTML = "";
                     if (!data || data.length === 0) {
-                        resultsDiv.innerHTML = "<p>No photos found. Try 'architecture' or 'dog'.</p>";
+                        resultsDiv.innerHTML = '<p class="empty-state">No photos found.</p>';
                         return;
                     }
                     data.forEach(item => {
                         var img = document.createElement('img');
                         img.src = item.url;
-                        img.alt = "Photo";
                         resultsDiv.appendChild(img);
                     });
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    resultsDiv.innerHTML = "<p style='color:red'>Error. Check console/API Key.</p>";
+                    resultsDiv.innerHTML = '<p style="color:red; text-align:center;">Search Error. Check Console.</p>';
                 });
         }
 
@@ -124,11 +188,12 @@
             var fileInput = document.getElementById('fileInput');
             var customLabels = document.getElementById('customLabels').value;
             var file = fileInput.files[0];
+            var btn = document.getElementById('uploadBtn');
 
-            if (!file) {
-                alert("Please select a file first.");
-                return;
-            }
+            if (!file) { alert("Please select a file first."); return; }
+
+            btn.innerText = "Uploading...";
+            btn.disabled = true;
 
             fetch(apigClient.invokeUrl + '/photos/' + file.name, {
                 method: 'PUT',
@@ -140,37 +205,46 @@
                 body: file
             })
                 .then(response => {
+                    btn.innerText = "Upload to Album";
+                    btn.disabled = false;
                     if (response.ok) {
-                        alert("Upload Successful! Search for it in a few seconds.");
+                        alert("✅ Upload Successful!");
                         document.getElementById('fileInput').value = '';
                         document.getElementById('customLabels').value = '';
                     } else {
-                        alert("Upload Failed. Did you enable Binary Support?");
+                        alert("❌ Upload Failed.");
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert("Upload Error.");
+                    btn.innerText = "Upload to Album";
+                    btn.disabled = false;
+                    alert("❌ Upload Error.");
                 });
         }
     </script>
 </head>
 
 <body>
-    <h1>📸 Cloud Photo Album</h1>
+    <h1><i class="fas fa-cloud"></i> Smart Cloud Album</h1>
 
-    <div class="container">
-        <h3>📤 Upload Photo</h3>
-        <input type="file" id="fileInput">
-        <input type="text" id="customLabels" placeholder="Custom labels (e.g., vacation, family)">
-        <button onclick="uploadPhoto()">Upload to Album</button>
-    </div>
+    <div class="main-container">
+        <div class="card">
+            <h3><i class="fas fa-upload"></i> Upload Photo</h3>
+            <input type="file" id="fileInput">
+            <input type="text" id="customLabels" placeholder="Custom labels (e.g., holiday, family)">
+            <button id="uploadBtn" onclick="uploadPhoto()">Upload to Album</button>
+        </div>
 
-    <div class="container">
-        <h3>🔍 Search Album</h3>
-        <input type="text" id="searchQuery" placeholder="Search for 'trees', 'architecture', etc.">
-        <button onclick="searchPhotos()">Search</button>
-        <div id="results"></div>
+        <div class="card">
+            <h3><i class="fas fa-search"></i> Search Gallery</h3>
+            <input type="text" id="searchQuery" placeholder="Search for 'dog', 'trees', etc.">
+            <button onclick="searchPhotos()">Find Photos</button>
+        </div>
+
+        <div class="results-container">
+            <div id="results"></div>
+        </div>
     </div>
 </body>
 

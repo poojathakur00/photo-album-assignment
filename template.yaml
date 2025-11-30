@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Cloud Computing Assignment: Photo Album Stack'
+
+Parameters:
+  OpenSearchEndpoint:
+    Type: String
+    Default: 'search-photos-placeholder.us-east-1.es.amazonaws.com'
+    Description: 'The endpoint of your existing OpenSearch domain (without https://)'
+
+Resources:
+  # =========================================================
+  # 1. S3 BUCKETS
+  # =========================================================
+  PhotosStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'photos-storage-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ['*']
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'photos-frontend-${AWS::AccountId}-${AWS::Region}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # =========================================================
+  # 2. IAM ROLES
+  # =========================================================
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
+        - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
+        - arn:aws:iam::aws:policy/AmazonLexFullAccess
+
+  # =========================================================
+  # 3. LAMBDA FUNCTIONS (Inline Code)
+  # =========================================================
+  IndexPhotosLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: index-photos-cfn
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          import urllib3
+          from urllib.parse import unquote_plus
+
+          def lambda_handler(event, context):
+              print("Event:", json.dumps(event))
+              return {'statusCode': 200, 'body': json.dumps('Photo indexed (CFN Stub)')}
+      Runtime: python3.12
+      Timeout: 30
+      Environment:
+        Variables:
+          OS_HOST: !Ref OpenSearchEndpoint
+          OS_USER: 'admin'
+          OS_PASS: 'Password123!'
+
+  SearchPhotosLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: search-photos-cfn
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          import urllib3
+
+          def lambda_handler(event, context):
+              print("Event:", json.dumps(event))
+              return {
+                  'statusCode': 200,
+                  'headers': {"Access-Control-Allow-Origin": "*"},
+                  'body': json.dumps([{"url": "https://example.com/dog.jpg", "labels": ["dog"]}])
+              }
+      Runtime: python3.12
+      Timeout: 30
+      Environment:
+        Variables:
+          OS_HOST: !Ref OpenSearchEndpoint
+          OS_USER: 'admin'
+          OS_PASS: 'Password123!'
+
+  # Permission for S3 to invoke Index Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt IndexPhotosLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt PhotosStorageBucket.Arn
+
+  # =========================================================
+  # 4. API GATEWAY
+  # =========================================================
+  PhotoApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: PhotoAlbumAPI-CFN
+      BinaryMediaTypes: 
+        - "*/*"
+
+  # GET /search
+  SearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PhotoApi
+      ParentId: !GetAtt PhotoApi.RootResourceId
+      PathPart: search
+
+  SearchMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref SearchResource
+      RestApiId: !Ref PhotoApi
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchPhotosLambda.Arn}/invocations
+
+  # Permission for API Gateway to invoke Search Lambda
+  ApiGatewayInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt SearchPhotosLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  # Deploy the API
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: SearchMethod
+    Properties:
+      RestApiId: !Ref PhotoApi
+      StageName: dev
+
+Outputs:
+  FrontendUrl:
+    Description: URL of the frontend website
+    Value: !GetAtt FrontendBucket.WebsiteURL
+  ApiUrl:
+    Description: URL of the API Gateway
+    Value: !Sub "https://${PhotoApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
