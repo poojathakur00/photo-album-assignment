@@ -147,7 +147,7 @@
     </style>
 
     <script type="text/javascript" src="lib/axios/dist/axios.standalone.js"></script>
-    <script type="text/javascript" src="lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/rollups/crypto-js.js"></script>
     <script type="text/javascript" src="lib/CryptoJS/rollups/sha256.js"></script>
     <script type="text/javascript" src="lib/CryptoJS/components/hmac.js"></script>
     <script type="text/javascript" src="lib/CryptoJS/components/enc-base64.js"></script>
@@ -162,7 +162,7 @@
     <script>
         // Initialize the SDK Client
         var sdkClient = apigClientFactory.newClient({
-            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'  // <--- ONLY THIS IS NEEDED NOW
+            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha' // <--- PASTE YOUR API KEY HERE
         });
 
         function searchPhotos() {
@@ -170,14 +170,12 @@
             var resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '<p class="empty-state">Searching...</p>';
 
-            // SDK Call for GET /search
             var params = { 'q': query };
             var body = {};
             var additionalParams = {};
 
             sdkClient.searchGet(params, body, additionalParams)
                 .then(function (result) {
-                    console.log("Search Result:", result);
                     var data = result.data;
                     resultsDiv.innerHTML = "";
                     if (!data || data.length === 0) {
@@ -207,7 +205,6 @@
             btn.innerText = "Uploading...";
             btn.disabled = true;
 
-            // SDK Call for PUT /photos/{item}
             var params = {
                 'item': file.name,
                 'Content-Type': file.type,
@@ -218,7 +215,6 @@
 
             sdkClient.photosItemPut(params, body, additionalParams)
                 .then(function (result) {
-                    console.log("Upload Result:", result);
                     btn.innerText = "Upload to Album";
                     btn.disabled = false;
                     alert("✅ Upload Successful!");
