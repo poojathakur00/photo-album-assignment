@@ -205,28 +205,40 @@
             btn.innerText = "Uploading...";
             btn.disabled = true;
 
-            var params = {
-                'item': file.name,
-                'Content-Type': file.type,
-                'x-amz-meta-customLabels': customLabels
-            };
-            var body = file;
-            var additionalParams = {};
+            // 1. Create a FileReader to read the file as binary data
+            var reader = new FileReader();
 
-            sdkClient.photosItemPut(params, body, additionalParams)
-                .then(function (result) {
-                    btn.innerText = "Upload to Album";
-                    btn.disabled = false;
-                    alert("✅ Upload Successful!");
-                    document.getElementById('fileInput').value = '';
-                    document.getElementById('customLabels').value = '';
-                })
-                .catch(function (error) {
-                    console.error('Upload Error:', error);
-                    btn.innerText = "Upload to Album";
-                    btn.disabled = false;
-                    alert("❌ Upload Failed. Check Console.");
-                });
+            // 2. Define what happens when the reading is done
+            reader.onload = function (event) {
+                var body = event.target.result; // This is the raw binary data (ArrayBuffer)
+
+                var params = {
+                    'item': file.name,
+                    'Content-Type': file.type,
+                    'x-amz-meta-customLabels': customLabels
+                };
+                var additionalParams = {};
+
+                // 3. Send the binary data using the SDK
+                sdkClient.photosItemPut(params, body, additionalParams)
+                    .then(function (result) {
+                        console.log("Upload Result:", result);
+                        btn.innerText = "Upload to Album";
+                        btn.disabled = false;
+                        alert("✅ Upload Successful!");
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('customLabels').value = '';
+                    })
+                    .catch(function (error) {
+                        console.error('Upload Error:', error);
+                        btn.innerText = "Upload to Album";
+                        btn.disabled = false;
+                        alert("❌ Upload Failed. Check Console.");
+                    });
+            };
+
+            // 4. Start reading the file
+            reader.readAsArrayBuffer(file);
         }
     </script>
 </head>
