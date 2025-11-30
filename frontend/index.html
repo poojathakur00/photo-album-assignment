@@ -106,6 +106,7 @@
             background-color: var(--primary-hover);
         }
 
+        /* Search Results Area - Full Width */
         .results-container {
             grid-column: 1 / -1;
             margin-top: 20px;
@@ -145,38 +146,27 @@
             }
         }
     </style>
-
-    <script type="text/javascript" src="lib/axios/dist/axios.standalone.js"></script>
-    <script type="text/javascript" src="lib/CryptoJS/rollups/crypto-js.js"></script>
-    <script type="text/javascript" src="lib/CryptoJS/rollups/sha256.js"></script>
-    <script type="text/javascript" src="lib/CryptoJS/components/hmac.js"></script>
-    <script type="text/javascript" src="lib/CryptoJS/components/enc-base64.js"></script>
-    <script type="text/javascript" src="lib/url-template/url-template.js"></script>
-    <script type="text/javascript" src="lib/apiGatewayCore/sigV4Client.js"></script>
-    <script type="text/javascript" src="lib/apiGatewayCore/apiGatewayClient.js"></script>
-    <script type="text/javascript" src="lib/apiGatewayCore/simpleHttpClient.js"></script>
-    <script type="text/javascript" src="lib/apiGatewayCore/utils.js"></script>
-
-    <script type="text/javascript" src="apigClient.js"></script>
-
     <script>
-        // Initialize the SDK Client
-        var sdkClient = apigClientFactory.newClient({
-            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha' // <--- PASTE YOUR API KEY HERE
-        });
+        // ==========================================
+        //  ⚠️ PASTE YOUR DETAILS HERE ⚠️
+        // ==========================================
+        var apigClient = {
+            invokeUrl: 'https://ndalvilx92.execute-api.us-east-2.amazonaws.com/dev', // e.g., https://xyz.execute-api.us-east-2.amazonaws.com/dev
+            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'     // e.g., da2-qwertyuiop123456                                 // <--- PASTE KEY HERE
+        };
+        // ==========================================
 
         function searchPhotos() {
             var query = document.getElementById('searchQuery').value;
             var resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '<p class="empty-state">Searching...</p>';
 
-            var params = { 'q': query };
-            var body = {};
-            var additionalParams = {};
-
-            sdkClient.searchGet(params, body, additionalParams)
-                .then(function (result) {
-                    var data = result.data;
+            fetch(apigClient.invokeUrl + '/search?q=' + query, {
+                method: 'GET',
+                headers: { 'x-api-key': apigClient.apiKey }
+            })
+                .then(response => response.json())
+                .then(data => {
                     resultsDiv.innerHTML = "";
                     if (!data || data.length === 0) {
                         resultsDiv.innerHTML = '<p class="empty-state">No photos found.</p>';
@@ -188,8 +178,8 @@
                         resultsDiv.appendChild(img);
                     });
                 })
-                .catch(function (error) {
-                    console.error('Search Error:', error);
+                .catch(error => {
+                    console.error('Error:', error);
                     resultsDiv.innerHTML = '<p style="color:red; text-align:center;">Search Error. Check Console.</p>';
                 });
         }
@@ -205,40 +195,32 @@
             btn.innerText = "Uploading...";
             btn.disabled = true;
 
-            // 1. Create a FileReader to read the file as binary data
-            var reader = new FileReader();
-
-            // 2. Define what happens when the reading is done
-            reader.onload = function (event) {
-                var body = event.target.result; // This is the raw binary data (ArrayBuffer)
-
-                var params = {
-                    'item': file.name,
+            fetch(apigClient.invokeUrl + '/photos/' + file.name, {
+                method: 'PUT',
+                headers: {
                     'Content-Type': file.type,
-                    'x-amz-meta-customLabels': customLabels
-                };
-                var additionalParams = {};
-
-                // 3. Send the binary data using the SDK
-                sdkClient.photosItemPut(params, body, additionalParams)
-                    .then(function (result) {
-                        console.log("Upload Result:", result);
-                        btn.innerText = "Upload to Album";
-                        btn.disabled = false;
+                    'x-amz-meta-customLabels': customLabels,
+                    'x-api-key': apigClient.apiKey
+                },
+                body: file
+            })
+                .then(response => {
+                    btn.innerText = "Upload to Album";
+                    btn.disabled = false;
+                    if (response.ok) {
                         alert("✅ Upload Successful!");
                         document.getElementById('fileInput').value = '';
                         document.getElementById('customLabels').value = '';
-                    })
-                    .catch(function (error) {
-                        console.error('Upload Error:', error);
-                        btn.innerText = "Upload to Album";
-                        btn.disabled = false;
-                        alert("❌ Upload Failed. Check Console.");
-                    });
-            };
-
-            // 4. Start reading the file
-            reader.readAsArrayBuffer(file);
+                    } else {
+                        alert("❌ Upload Failed.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    btn.innerText = "Upload to Album";
+                    btn.disabled = false;
+                    alert("❌ Upload Error.");
+                });
         }
     </script>
 </head>
