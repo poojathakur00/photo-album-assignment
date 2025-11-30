@@ -8,13 +8,13 @@ phases:
     commands:
       - echo "Zipping and deploying Lambda functions..."
       
-      # 1. Deploy Indexing Lambda
-      - cd lambdas/index-photos
+      # 1. Deploy Indexing Lambda (Adjusted path)
+      - cd index-photos
       - zip -r index.zip lambda_function.py
       - aws lambda update-function-code --function-name index-photos --zip-file fileb://index.zip
-      - cd ../..
+      - cd ..
       
-      # 2. Deploy Search Lambda
-      - cd lambdas/search-photos
+      # 2. Deploy Search Lambda (Adjusted path)
+      - cd search-photos
       - zip -r search.zip lambda_function.py
       - aws lambda update-function-code --function-name search-photos --zip-file fileb://search.zip
