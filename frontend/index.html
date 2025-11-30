@@ -106,7 +106,6 @@
             background-color: var(--primary-hover);
         }
 
-        /* Search Results Area - Full Width */
         .results-container {
             grid-column: 1 / -1;
             margin-top: 20px;
@@ -146,27 +145,40 @@
             }
         }
     </style>
+
+    <script type="text/javascript" src="lib/axios/dist/axios.standalone.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/rollups/sha256.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/components/hmac.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/components/enc-base64.js"></script>
+    <script type="text/javascript" src="lib/url-template/url-template.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/sigV4Client.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/apiGatewayClient.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/simpleHttpClient.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/utils.js"></script>
+
+    <script type="text/javascript" src="apigClient.js"></script>
+
     <script>
-        // ==========================================
-        //  ⚠️ PASTE YOUR DETAILS HERE ⚠️
-        // ==========================================
-        var apigClient = {
-            invokeUrl: 'https://ndalvilx92.execute-api.us-east-2.amazonaws.com/dev', // e.g., https://xyz.execute-api.us-east-2.amazonaws.com/dev
-            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'     // e.g., da2-qwertyuiop123456                                 // <--- PASTE KEY HERE
-        };
-        // ==========================================
+        // Initialize the SDK Client
+        var sdkClient = apigClientFactory.newClient({
+            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'  // <--- ONLY THIS IS NEEDED NOW
+        });
 
         function searchPhotos() {
             var query = document.getElementById('searchQuery').value;
             var resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '<p class="empty-state">Searching...</p>';
 
-            fetch(apigClient.invokeUrl + '/search?q=' + query, {
-                method: 'GET',
-                headers: { 'x-api-key': apigClient.apiKey }
-            })
-                .then(response => response.json())
-                .then(data => {
+            // SDK Call for GET /search
+            var params = { 'q': query };
+            var body = {};
+            var additionalParams = {};
+
+            sdkClient.searchGet(params, body, additionalParams)
+                .then(function (result) {
+                    console.log("Search Result:", result);
+                    var data = result.data;
                     resultsDiv.innerHTML = "";
                     if (!data || data.length === 0) {
                         resultsDiv.innerHTML = '<p class="empty-state">No photos found.</p>';
@@ -178,8 +190,8 @@
                         resultsDiv.appendChild(img);
                     });
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(function (error) {
+                    console.error('Search Error:', error);
                     resultsDiv.innerHTML = '<p style="color:red; text-align:center;">Search Error. Check Console.</p>';
                 });
         }
@@ -195,31 +207,29 @@
             btn.innerText = "Uploading...";
             btn.disabled = true;
 
-            fetch(apigClient.invokeUrl + '/photos/' + file.name, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': file.type,
-                    'x-amz-meta-customLabels': customLabels,
-                    'x-api-key': apigClient.apiKey
-                },
-                body: file
-            })
-                .then(response => {
+            // SDK Call for PUT /photos/{item}
+            var params = {
+                'item': file.name,
+                'Content-Type': file.type,
+                'x-amz-meta-customLabels': customLabels
+            };
+            var body = file;
+            var additionalParams = {};
+
+            sdkClient.photosItemPut(params, body, additionalParams)
+                .then(function (result) {
+                    console.log("Upload Result:", result);
                     btn.innerText = "Upload to Album";
                     btn.disabled = false;
-                    if (response.ok) {
-                        alert("✅ Upload Successful!");
-                        document.getElementById('fileInput').value = '';
-                        document.getElementById('customLabels').value = '';
-                    } else {
-                        alert("❌ Upload Failed.");
-                    }
+                    alert("✅ Upload Successful!");
+                    document.getElementById('fileInput').value = '';
+                    document.getElementById('customLabels').value = '';
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(function (error) {
+                    console.error('Upload Error:', error);
                     btn.innerText = "Upload to Album";
                     btn.disabled = false;
-                    alert("❌ Upload Error.");
+                    alert("❌ Upload Failed. Check Console.");
                 });
         }
     </script>
