@@ -1,0 +1,8 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo "Deploying Frontend to S3..."
+      - aws s3 cp index.html s3://photo-album-frontend-put2003/index.html
+      # (I used the bucket name from your logs: photo-album-frontend-put2003)

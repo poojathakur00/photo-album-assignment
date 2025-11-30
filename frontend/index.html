@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Photo Album</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h3 {
+            margin-top: 0;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        #results img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        #results img:hover {
+            transform: scale(1.05);
+        }
+    </style>
+    <script>
+        // *****************************************************
+        // CONFIGURE YOUR API DETAILS HERE
+        var apigClient = {
+            invokeUrl: 'https://ndalvilx92.execute-api.us-east-2.amazonaws.com/dev', // e.g., https://xyz.execute-api.us-east-2.amazonaws.com/dev
+            apiKey: 'seIrsjAqB818KzHrU8QRy6SlPz5bXbdRatdwzYha'     // e.g., da2-qwertyuiop123456
+        };
+        // *****************************************************
+
+        function searchPhotos() {
+            var query = document.getElementById('searchQuery').value;
+            var resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = "<p>Searching...</p>";
+
+            fetch(apigClient.invokeUrl + '/search?q=' + query, {
+                method: 'GET',
+                headers: {
+                    'x-api-key': apigClient.apiKey
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    resultsDiv.innerHTML = "";
+                    if (!data || data.length === 0) {
+                        resultsDiv.innerHTML = "<p>No photos found. Try 'architecture' or 'dog'.</p>";
+                        return;
+                    }
+                    data.forEach(item => {
+                        var img = document.createElement('img');
+                        img.src = item.url;
+                        img.alt = "Photo";
+                        resultsDiv.appendChild(img);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsDiv.innerHTML = "<p style='color:red'>Error. Check console/API Key.</p>";
+                });
+        }
+
+        function uploadPhoto() {
+            var fileInput = document.getElementById('fileInput');
+            var customLabels = document.getElementById('customLabels').value;
+            var file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            fetch(apigClient.invokeUrl + '/photos/' + file.name, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type,
+                    'x-amz-meta-customLabels': customLabels,
+                    'x-api-key': apigClient.apiKey
+                },
+                body: file
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert("Upload Successful! Search for it in a few seconds.");
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('customLabels').value = '';
+                    } else {
+                        alert("Upload Failed. Did you enable Binary Support?");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Upload Error.");
+                });
+        }
+    </script>
+</head>
+
+<body>
+    <h1>📸 Cloud Photo Album</h1>
+
+    <div class="container">
+        <h3>📤 Upload Photo</h3>
+        <input type="file" id="fileInput">
+        <input type="text" id="customLabels" placeholder="Custom labels (e.g., vacation, family)">
+        <button onclick="uploadPhoto()">Upload to Album</button>
+    </div>
+
+    <div class="container">
+        <h3>🔍 Search Album</h3>
+        <input type="text" id="searchQuery" placeholder="Search for 'trees', 'architecture', etc.">
+        <button onclick="searchPhotos()">Search</button>
+        <div id="results"></div>
+    </div>
+</body>
+
+</html>
