@@ -27,7 +27,7 @@ def lambda_handler(event, context):
             botId=bot_id,
             botAliasId=bot_alias_id,
             localeId='en_US',
-            sessionId='test-session-user',
+            sessionId=str(uuid.uuid4()),
             text=user_query
         )
         print("Lex Response:", json.dumps(lex_response))
